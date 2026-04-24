@@ -208,6 +208,53 @@ blueprint:
                 - sensor
               multiple: false
               reorder: false
+              
+        min_pv_power:
+          name: Minimum PV Power threshold
+          description:
+            "Minimum PV production (in watts) required before the script considers
+            solar as 'active'. Below this threshold, appliances will be switched off
+            even if your battery is keeping the grid balance near zero.
+
+            Recommended: 50W. Set to 0 to disable this behavior.
+
+            **[NOTE]**
+
+            - **This value must be the same for all your created automations based on
+            this blueprint!**
+            "
+          default: 50
+          selector:
+            number:
+              min: 0.0
+              max: 500.0
+              step: 10.0
+              unit_of_measurement: W
+              mode: slider
+              
+        min_excess_power:
+          name: Minimum excess power
+          description:
+            "Minimum excess power (in watts) that must be available before keeping
+            an appliance running. Should be slightly negative to compensate for
+            inaccurate power corrections.
+
+            **[WARNING]**
+
+            - Do not set this above 0, otherwise dynamic current appliances may be
+            abruptly switched off in some situations.
+
+            - **This value must be the same for all your created automations based on
+            this blueprint!**
+            "
+          default: -10
+          selector:
+            number:
+              min: -200.0
+              max: 0.0
+              step: 5.0
+              unit_of_measurement: W
+              mode: slider
 
     home_battery_settings:
       name: Home Battery Settings
@@ -912,3 +959,5 @@ action:
       appliance_minimum_run_time: !input appliance_minimum_run_time
       appliance_runtime_deadline: !input appliance_runtime_deadline
       enabled: !input enabled
+      min_pv_power: !input min_pv_power
+      min_excess_power: !input min_excess_power

@@ -293,6 +293,8 @@ def pv_excess_control(
     appliance_minimum_run_time,
     appliance_runtime_deadline,
     enabled,
+    min_pv_power,
+    min_excess_power,
 ):
     automation_id = (
         automation_id[11:] if automation_id[:11] == "automation." else automation_id
@@ -339,13 +341,14 @@ def pv_excess_control(
         appliance_minimum_run_time,
         appliance_runtime_deadline,
         enabled,
+        min_pv_power,
+        min_excess_power,
     )
 
 
 class PvExcessControl:
     # TODO:
     #  - What about other domains than switches? Enable use of other domains (e.g. light, ...)
-    #  - Make min_excess_power configurable via blueprint
     #  - Implement updating of pv sensors history more often. E.g. every 10secs, and averaging + adding to history every minute.
     instances = {}
     export_power = None
@@ -373,6 +376,7 @@ class PvExcessControl:
     #  WARNING: Do net set this to more than 0, otherwise some devices with dynamic current control will abruptly get switched off in some
     #  situations.
     min_excess_power = -10
+    min_pv_power = 50  # Solar Watts. Below this, treat solar as off regardless of battery balance. (In case you cant read Battery level in HA
     on_time_counter = 0
 
     def __init__(
@@ -414,6 +418,8 @@ class PvExcessControl:
         appliance_minimum_run_time,
         appliance_runtime_deadline,
         enabled,
+        min_pv_power,
+        min_excess_power,
     ):
         if automation_id not in PvExcessControl.instances:
             inst = self
@@ -440,6 +446,9 @@ class PvExcessControl:
         PvExcessControl.zero_feed_in = bool(zero_feed_in)
         PvExcessControl.zero_feed_in_load = zero_feed_in_load
         PvExcessControl.zero_feed_in_level = float(zero_feed_in_level)
+        
+        PvExcessControl.min_pv_power = float(min_pv_power)
+        PvExcessControl.min_excess_power = float(min_excess_power)
 
         inst.dynamic_current_appliance = bool(dynamic_current_appliance)
         inst.round_target_current = bool(round_target_current)
@@ -1230,6 +1239,16 @@ class PvExcessControl:
             log.error(f"Could not update Export/PV history!: {e}")
             return
         else:
+            # Override : If Pv production is neglible, battery is masking grid balance.
+            # Force excess negative so appliances get switched off even if grid reads ~0W.
+            if pv_power_state is not None and pv_power_state < PvExcessControl.min_pv_power:
+                log.debug(
+                    f"PV power ({pv_power_state}W) below min threshold ({PvExcessControl.min_pv_power}W) — "
+                    f"overriding excess_pwr to -9999 to force appliance shutdown."
+                )
+                excess_pwr = -9999
+                export_pwr = 0
+            
             PvExcessControl.export_history_buffer.append(export_pwr)
             PvExcessControl.pv_history_buffer.append(excess_pwr)
             PvExcessControl.load_history_buffer.append(load_pwr)
