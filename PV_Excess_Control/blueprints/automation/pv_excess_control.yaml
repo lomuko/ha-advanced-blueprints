@@ -662,14 +662,15 @@ blueprint:
             you need to input 1 here.
 
             "
-          default: 1
+          default: "1"
           selector:
-            number:
-              min: 1.0
-              max: 3.0
-              step: 1.0
-              unit_of_measurement: phases
-              mode: slider
+            select:
+              options:
+                - label: "1-Phase"
+                  value: "1"
+                - label: "3-Phases"
+                  value: "3"
+            
         defined_current:
           name: Appliance typical current draw
           description:
@@ -917,8 +918,8 @@ blueprint:
   source_url: https://github.com/nicorusti/ha-advanced-blueprints/blob/main/PV_Excess_Control/blueprints/automation/pv_excess_control.yaml
 mode: single
 triggers:
-  - trigger: homeassistant
-    event: start
+  - trigger: event
+    event_type: pyscript_services_ready
 action:
   - service: pyscript.pv_excess_control
     data:

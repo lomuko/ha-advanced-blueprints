@@ -213,6 +213,9 @@ def reset_midnight():
         if _get_state(inst.appliance_switch) == "on":
             inst.switched_on_time = datetime.datetime.now()
 
+@time_trigger("startup")
+def on_pyscript_ready():
+    event.fire("pyscript_services_ready")
 
 @time_trigger("cron(*/10 * * * *)")
 def enforce_runtime():
